@@ -258,7 +258,7 @@ export function evaluateNotebook(evalQueueInstance = evalQueue) {
   };
 }
 
-function getNotebookSaveRequestOptions(state, options = undefined) {
+export function getNotebookSaveRequestOptions(state, options = undefined) {
   const data = {
     title: state.title,
     content: state.jsmd
@@ -288,7 +288,7 @@ export function saveNotebookRequest(url, postRequestOptions, dispatch) {
           messageType: "ERROR_SAVING_NOTEBOOK"
         })
       );
-      throw new Error(err);
+      throw new Error(err.message);
     });
 }
 
@@ -298,7 +298,11 @@ export function createNewNotebookOnServer(options = { forkedFrom: undefined }) {
     const postRequestOptions = getNotebookSaveRequestOptions(state, {
       forkedFrom: options.forkedFrom
     });
-    saveNotebookRequest("/api/v1/notebooks/", postRequestOptions, dispatch)
+    return saveNotebookRequest(
+      "/api/v1/notebooks/",
+      postRequestOptions,
+      dispatch
+    )
       .then(json => {
         const message = "Notebook saved to server";
         dispatch(
@@ -324,7 +328,7 @@ export function saveNotebookToServer(appMsg = true) {
     const notebookInServer = Boolean(notebookId);
     if (notebookInServer) {
       // Update Exisiting Notebook
-      saveNotebookRequest(
+      return saveNotebookRequest(
         `/api/v1/notebooks/${notebookId}/revisions/`,
         getNotebookSaveRequestOptions(state),
         dispatch
@@ -342,12 +346,11 @@ export function saveNotebookToServer(appMsg = true) {
           }
           dispatch({ type: "NOTEBOOK_SAVED" });
         })
-        .catch(() => {
-          // do nothing here.
+        .catch(err => {
+          throw Error(err);
         });
-    } else {
-      createNewNotebookOnServer()(dispatch, getState);
     }
+    return createNewNotebookOnServer()(dispatch, getState);
   };
 }
 
